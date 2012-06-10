@@ -30,6 +30,7 @@
 #import	<Foundation/NSDate.h>
 #import	<Foundation/NSCalendarDate.h>
 #import	<Foundation/NSCharacterSet.h>
+#import	<Foundation/NSDecimalNumber.h>
 #import	<Foundation/NSException.h>
 #import	<Foundation/NSProcessInfo.h>
 #import	<Foundation/NSNotification.h>
@@ -453,15 +454,22 @@ static unsigned int trim(char *str)
 			{
 			  switch (types[j])
 			    {
-			      case 1082:	// Date
-			      case 1083:	// Time
-			      case 1114:	// Timestamp without time zone.
-			      case 1184:	// Timestamp with time zone.
+			      case 1082:	// date
+			      case 1083:	// time
+			      case 1114:	// timestamp (without time zone)
+			      case 1115:	// _timestamp (without time zone)
+			      case 1182:	// _date
+			      case 1183:	// _time
+			      case 1184:	// timestamptz (timestamp with time zone)
+			      case 1185:	// _timestamptz (timestamp with time zone)
+			      case 1266:	// timetz
+			      case 1270:	// _timetz
 				v = [self dbToDateFromBuffer: p
 						      length: trim(p)];
 				break;
 
-			      case 16:		// BOOL
+			      case 16:		// bool
+			      case 1000:	// _bool
 				if (*p == 't')
 				  {
 				    v = @"YES";
@@ -472,10 +480,39 @@ static unsigned int trim(char *str)
 				  }
 				break;
 
-			      case 17:		// BYTEA
+			      case 17:		// bytea
+			      case 10011:	// _bytea
 				v = [self dataFromBLOB: p];
 				break;
 
+			      case 20:		// int8
+			      case 21:		// int2
+			      case 23:		// int4
+			      case 26:		// oid
+			      case 1005:	// _int2
+			      case 1007:	// _int4
+			      case 1016:	// _int8
+				v = [NSString stringWithUTF8String: p];
+				v = [NSNumber numberWithInt: [v intValue]];
+				break;
+
+			      case 700:		// float4
+			      case 701:		// float8
+			      case 1021:	// _float4
+			      case 1022:	// _float8
+				v = [NSString stringWithUTF8String: p];
+				v = [NSNumber numberWithDouble: [v doubleValue]];
+				break;
+
+			      case 1231:	// _numeric: arbitrary precision number
+			      case 1700:	// numeric: arbitrary precision number
+				v = [NSString stringWithUTF8String: p];
+				v = [NSDecimalNumber decimalNumberWithString: v];
+				break;
+
+			      case 25:		// text
+			      case 1015:	// _varchar
+			      case 1043:	// varchar
 			      default:
 				trim(p);
 				v = [NSString stringWithUTF8String: p];
